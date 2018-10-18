@@ -65,10 +65,11 @@ def diffrac_lim_kernel(input_image, diffrac_lim=2.68):
     return convolved_kernel
 
 
-def PCA_2d(filename, ncomponents):
+def PCA_2d(filename, ncomponents, outfile):
     k = ncomponents + 1
     complete_file= fits.open(filename)
     images = complete_file[0].data
+    hdr=complete_file[0].header
 
     meanimage = np.mean(images, axis=0)
     resid = images - meanimage
@@ -78,13 +79,12 @@ def PCA_2d(filename, ncomponents):
     imapprox = np.reshape(lowrank.T, images.shape)  # back to original shape
     imapprox += meanimage  # the final low-rank approximation
     varfrac = np.cumsum(W ** 2) / np.sum(W ** 2)
+    basis=[]
     for component in range(k):
-        basis = np.reshape(U[:, component], images[component].shape)
-
+        basis.append(np.reshape(U[:, component], images[component].shape))
+    basis=np.array(basis)
+    fits.writeto(outfile, basis, hdr, overwrite=True)
     return imapprox, varfrac
 
 if __name__ == "__main__":
-    imapprox, varfrac=PCA_2d('/home/isabel/Desktop/PCA_testbed/images.fits', ncomponents=12)
-    plt.plot(varfrac)
-    #plt.show()
-
+    imapprox, varfrac=PCA_2d('/home/isabel/PCA_testbed/images.fits', 12, '/home/isabel/PCA_testbed/charis_components.fits')
