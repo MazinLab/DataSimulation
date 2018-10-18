@@ -1,13 +1,13 @@
-import glob
-import inspect
-import os
-import sys
+import numpy as np
+import matplotlib.pyplot as plt
 
+from astropy.io import fits
 from astropy.coordinates import SkyCoord
 import astropy.units as units
 from PyAstronomy import pyasl
 from astropy.convolution import Gaussian2DKernel, convolve
-import numpy as np
+from sklearn.decomposition import PCA as sklearnPCA
+
 
 """
 Modules
@@ -57,7 +57,7 @@ def calc_diffrac_lim(lambda_start=1100, lambda_stop=1400, diameter=8.3, scale=16
     return diffrac_lim
 
 
-def diffrac_lim_kernel(input_image=input_image, diffrac_lim=2.68):
+def diffrac_lim_kernel(input_image, diffrac_lim=2.68):
     [x_size, y_size] = np.shape(input_image)
     sigma = diffrac_lim / (2. * math.sqrt(2. * math.log(2.)))
     gaussian_2D_kernel = Gaussian2DKernel(sigma, x_size, y_size)
@@ -66,3 +66,25 @@ def diffrac_lim_kernel(input_image=input_image, diffrac_lim=2.68):
 
 
 def PCA_2d(filename, ncomponents):
+    k = ncomponents + 1
+    complete_file= fits.open(filename)
+    images = complete_file[0].data
+
+    meanimage = np.mean(images, axis=0)
+    resid = images - meanimage
+    D = np.reshape(resid, (images.shape[0], -1)).T    # -> n_pix x n_im 2D matrix
+    U, W, VT = np.linalg.svd(D, full_matrices=False)
+    lowrank = np.linalg.multi_dot([U[:, :k], np.diag(W[:k]), VT[:k]])
+    imapprox = np.reshape(lowrank.T, images.shape)  # back to original shape
+    imapprox += meanimage  # the final low-rank approximation
+    varfrac = np.cumsum(W ** 2) / np.sum(W ** 2)
+    for component in range(k):
+        basis = np.reshape(U[:, component], images[component].shape)
+
+    return imapprox, varfrac
+
+if __name__ == "__main__":
+    imapprox, varfrac=PCA_2d('/home/isabel/Desktop/PCA_testbed/images.fits', ncomponents=12)
+    plt.plot(varfrac)
+    #plt.show()
+
