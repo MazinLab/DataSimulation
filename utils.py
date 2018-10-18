@@ -87,4 +87,4 @@ def PCA_2d(filename, ncomponents, outfile):
     return imapprox, varfrac
 
 if __name__ == "__main__":
-    imapprox, varfrac=PCA_2d('/home/isabel/PCA_testbed/images.fits', 12, '/home/isabel/PCA_testbed/charis_components.fits')
+    pass
