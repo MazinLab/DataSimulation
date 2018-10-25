@@ -66,11 +66,10 @@ def diffrac_lim_kernel(input_image, diffrac_lim=2.68):
 
 
 def PCA_2d(filename, ncomponents, outfile):
-    k = ncomponents + 1
+    k = ncomponents
     complete_file= fits.open(filename)
     images = complete_file[0].data
     hdr=complete_file[0].header
-
     meanimage = np.mean(images, axis=0)
     resid = images - meanimage
     D = np.reshape(resid, (images.shape[0], -1)).T    # -> n_pix x n_im 2D matrix
@@ -84,7 +83,24 @@ def PCA_2d(filename, ncomponents, outfile):
         basis.append(np.reshape(U[:, component], images[component].shape))
     basis=np.array(basis)
     fits.writeto(outfile, basis, hdr, overwrite=True)
-    return imapprox, varfrac
+    return images, meanimage, hdr, D, U, W, VT
+
+def component_subtraction(filename, ncomponents, outfile1, outfile2,  num_to_subtract):
+    print(num_to_subtract)
+    images, meanimage, hdr, D, U, W, VT = PCA_2d(filename, ncomponents, outfile1)
+    lowrank1 = np.linalg.multi_dot([U[:, :num_to_subtract], np.diag(W[:num_to_subtract]), VT[:num_to_subtract]])
+    sub_image= D - lowrank1
+    sub_image_reshape = np.reshape(sub_image.T, images.shape)  # back to original shape
+    print(np.shape(sub_image_reshape))
+    fits.writeto(outfile2, sub_image_reshape, hdr, overwrite=True)
+
+def make_PC_cube(filename, ncomponents, outfile1, outfile2,  num_PCs):
+    images, meanimage, hdr, D, U, W, VT = PCA_2d(filename, ncomponents, outfile1)
+    lowrank1 = np.linalg.multi_dot([U[:, (num_PCs-1):num_PCs], np.diag(W[(num_PCs-1):num_PCs]), VT[(num_PCs-1):num_PCs]])
+    PCimage_reshape = np.reshape(lowrank1.T, images.shape)  # back to original shape
+    print(np.shape(PCimage_reshape))
+    fits.writeto(outfile2, PCimage_reshape, hdr, overwrite=True)
+
 
 if __name__ == "__main__":
     pass
