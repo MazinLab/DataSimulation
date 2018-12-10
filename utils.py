@@ -82,12 +82,13 @@ def PCA_2d(filename, ncomponents, outfile):
     for component in range(k):
         basis.append(np.reshape(U[:, component], images[component].shape))
     basis=np.array(basis)
+    basis_1 = np.reshape(U[:, 0], images[0].shape)
     fits.writeto(outfile, basis, hdr, overwrite=True)
-    return images, meanimage, hdr, D, U, W, VT
+    return images, meanimage, basis_1, hdr, D, U, W, VT
 
 def component_subtraction(filename, ncomponents, outfile1, outfile2,  num_to_subtract):
     print(num_to_subtract)
-    images, meanimage, hdr, D, U, W, VT = PCA_2d(filename, ncomponents, outfile1)
+    images, meanimage, basis_1, hdr, D, U, W, VT = PCA_2d(filename, ncomponents, outfile1)
     lowrank1 = np.linalg.multi_dot([U[:, :num_to_subtract], np.diag(W[:num_to_subtract]), VT[:num_to_subtract]])
     sub_image= D - lowrank1
     sub_image_reshape = np.reshape(sub_image.T, images.shape)  # back to original shape
@@ -101,6 +102,11 @@ def make_PC_cube(filename, ncomponents, outfile1, outfile2,  num_PCs):
     print(np.shape(PCimage_reshape))
     fits.writeto(outfile2, PCimage_reshape, hdr, overwrite=True)
 
+def open_file(filename):
+    complete_file= fits.open(filename)
+    images = complete_file[0].data
+    hdr=complete_file[0].header
+    return images, hdr
 
 if __name__ == "__main__":
     pass
